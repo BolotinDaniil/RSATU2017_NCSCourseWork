@@ -1,0 +1,6 @@
+*.toc
+/report.aux
+/report.dvi
+/report.log
+*.pdf
+*.gz
