@@ -125,10 +125,15 @@ class GA:
             new_population[i] = self.population[index]
 
         self.population = new_population
-        if np.var(new_scores)**0.5 < 0.1:
-            self.amount_winners = 18
+
+        # heuristic
+        if np.var(new_scores)**0.5 < 0.01:
+            self.amount_winners = 17
+        elif np.var(new_scores)**0.5 > 0.2:
+            self.amount_winners = 20
         else:
             self.amount_winners = 20
+
         print('generation: {}, mean: {}, deviation: {}'
               .format(self.number_generation, np.mean(new_scores), np.var(new_scores)**0.5))
 
