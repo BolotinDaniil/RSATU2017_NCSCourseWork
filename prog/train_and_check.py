@@ -3,7 +3,7 @@ import cProfile
 os.environ['MKL_NUM_THREADS'] = '8'
 os.environ['GOTO_NUM_THREADS'] = '8'
 os.environ['OMP_NUM_THREADS'] = '8'
-os.environ['THEANO_FLAGS'] = 'device=cpu, floatX=float64'
+os.environ['THEANO_FLAGS'] = 'device=cpu, floatX=float32'
 # os.environ['THEANO_FLAGS'] = 'device=cpu,blas.ldflags=-lblas -lgfortran'
 import theano
 theano.config.openmp = True
@@ -11,13 +11,14 @@ theano.config.openmp = True
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, Dropout
 from keras.layers.convolutional import Convolution1D, MaxPooling1D
-from keras.optimizers import SGD
+from keras import optimizers
 import numpy as np
-import time
+from utils import timeit
 import math
 import matplotlib.pyplot as plt
 from keras import backend as K
 import numpy as np
+import settings
 
 def get_class_labes(res):
     m = 0
@@ -32,6 +33,112 @@ def my_init(shape, name=None):
     print("shape = ", shape)
     value = np.random.random(shape)
     return K.variable(value, name=name)
+
+indexes = []
+scores = []
+
+def sortByIndex(index):
+    global scores
+    return scores[index]
+
+class GA:
+    def __init__(self, population_size, genotype_size, amount_generations, crossing_rate, mutation_rate):
+        self.pop_size = population_size
+        self.genotype_size = genotype_size
+        self.amount_generations = amount_generations
+        self.c_r = crossing_rate
+        self.m_r = mutation_rate
+        self.amount_winners = settings.amount_winners
+        self.nn = Teacher()
+        self.nn.load()
+
+    def build_inital_polulation(self):
+        self.population = np.random.random((self.pop_size, self.genotype_size)) * settings.max_init_weight
+
+    def conv_genotype(self, genotype):
+        w1 = np.array(genotype[0:5*64])
+        w1.shape = (5, 64)
+        b1 = np.array(genotype[5*64:6*64])
+        w2 = np.array(genotype[6*64: 6*64+64])
+        w2.shape = (64, 1)
+        b2 = np.array(genotype[7*64])
+        b2.shape=(1)
+        return (w1, b1, w2, b2)
+
+    def mutate_genotype(self, genotype_index):
+        gi = genotype_index
+        for i in range(int(np.random.randint(0, self.genotype_size //2 * 3))):
+            self.population[gi][np.random.randint(0, self.genotype_size)] = np.random.rand() * settings.max_init_weight
+
+    def crossing_genotypes(self, p1, p2):
+        '''
+        :param p1: parent1: genotype
+        :param p2: parent2
+        :return: new genotype
+        '''
+        # split_point = np.random.randint(0, self.genotype_size)
+        # g = np.concatenate( (p1[:split_point], p2[split_point:]), axis=0)
+        g = np.empty( (self.genotype_size), dtype='float32')
+        for i in range(self.genotype_size):
+            if np.random.choice((True, False)):
+                g[i] = p1[i]
+            else:
+                g[i] = p2[i]
+        return g
+        pass
+
+    def crossing(self):
+        new_pop = np.empty( (int(self.pop_size * self.c_r), self.genotype_size), dtype='float32')
+        new_pop[0:self.pop_size] = self.population[:]
+        self.population = new_pop
+        for i in range(int((self.c_r-1) * self.pop_size)):
+            p1 = np.random.randint(0, self.pop_size)
+            p2 = np.random.randint(0, self.pop_size)
+            self.population[i+self.pop_size] = self.crossing_genotypes(self.population[p1], self.population[p2])
+            if np.random.rand() < self.m_r:
+                self.mutate_genotype(i+self.pop_size)
+
+
+    def fit_genotype(self, genotype):
+        init_weights = self.conv_genotype(genotype)
+        self.nn.build_model(init_weights)
+        _, r = self.nn.train(settings.nb_epoch, settings.batch_size)
+        return r[-1]
+
+
+    @timeit
+    def selection(self):
+        global indexes, scores
+        indexes = []
+        scores = []
+        for i in range(self.population.shape[0]):
+            indexes.append(i)
+            scores.append(self.fit_genotype(self.population[i]))
+        indexes.sort(key=sortByIndex, reverse=True)
+        new_population = np.empty((self.pop_size, self.genotype_size), dtype='float32')
+        new_scores = np.empty( (self.pop_size), dtype='float32')
+        for i in range(self.amount_winners):
+            new_population[i] = self.population[indexes[i]]
+            new_scores[i] = scores[indexes[i]]
+        for i in range(self.amount_winners, self.pop_size):
+            index = [indexes[np.random.randint(self.amount_winners, self.population.shape[0])]]
+            new_population[i] = self.population[index]
+
+        self.population = new_population
+        if np.var(new_scores)**0.5 < 0.1:
+            self.amount_winners = 18
+        else:
+            self.amount_winners = 20
+        print('generation: {}, mean: {}, deviation: {}'
+              .format(self.number_generation, np.mean(new_scores), np.var(new_scores)**0.5))
+
+
+    def evalution(self):
+        self.build_inital_polulation()
+        for i in range(self.amount_generations):
+            self.number_generation = i + 1
+            self.crossing()
+            self.selection()
 
 class Teacher:
     model = None
@@ -51,7 +158,7 @@ class Teacher:
         self.Y_test = dataset_test[:, self.len_group]
 
 
-    def make_model(self):
+    def build_model(self, weights):
         # fix random seed for reproducibility
         seed = 7
         np.random.seed(seed)
@@ -60,52 +167,31 @@ class Teacher:
         # create model
         #convolution model
         self.model = Sequential()
-        # self.model.add(Convolution1D(64, 3, border_mode='same', input_shape = (1,  self.len_group), activation='relu'))
-        # self.model.add(Convolution1D(64, 5, border_mode='same', activation='relu'))
-        # self.model.add(Convolution1D(64, 7, border_mode='same', activation='relu'))
-        # self.model.add(Convolution1D(32, 5, border_mode='same', activation='relu'))
-        # self.model.add(Flatten())
-        # self.model.add(Dense(32, init='he_normal', activation='relu'))
-        # self.model.add(Dense(16, init='he_normal', activation='relu'))
-        # self.model.add(Dense(8, init='he_normal', activation='relu'))
-        # self.model.add(Dense(3, init='uniform', activation='sigmoid'))
-        # sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-        # self.model.compile(loss='sparse_categorical_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
-        # self.X_train = self.X_train.reshape(-1, 1, self.len_group)
-        # self.X_test = self.X_test.reshape(-1, 1, self.len_group)
-        # fully connected model
-        self.model.add(Dense(64, input_dim=self.len_group, init=my_init, activation='relu'))
+
+        self.model.add(Dense(64, input_dim=self.len_group, activation='relu',
+                             weights=(weights[0], weights[1])))
         # self.model.add(Dense(32, init='he_normal', activation='relu'))
         # self.model.add(Dense(8, init='he_normal', activation='relu'))
         # self.model.add(Dense(5, init='he_normal', activation='relu'))
         # self.model.add(Dense(32, init='he_normal', activation='relu'))
-        self.model.add(Dense(1, init=my_init, activation='sigmoid'))
+        self.model.add(Dense(1, activation='sigmoid',
+                             weights=(weights[2], weights[3])))
         # Compile model
-        self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-        # Fit the model
-        # start_time = time.time()
-        # self.model.fit(self.X_train, self.Y_train, nb_epoch=50, batch_size=32)
-        # evaluate the model
-        # print('\nTrain take %s minutes' % (int(time.time() - start_time) // 60))
+        optimizer = optimizers.SGD(lr=1e-3)
+        # optimizer = optimizers.RMSprop()
+        self.model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
 
-        # print('\n\nIn train data')
-        # self.standart_evaluate(self.X_train, self.Y_train)
-        # print('\n\nIn test data')
-        # self.standart_evaluate(self.X_test, self.Y_test)
 
-    def train_and_fix_learning(self, nb_epoch, batch_size):
-        res_train = []
-        res_test = []
-        for i in range(nb_epoch):
-            print("\nepoch = %s" % i)
-            self.model.fit(self.X_train, self.Y_train, nb_epoch=1, batch_size=batch_size)
-            res_train.append(self.standart_evaluate(self.X_train, self.Y_train, show=False))
-            res_test.append(self.standart_evaluate(self.X_test, self.Y_test, show=False))
+    # @timeit
+    def train(self, nb_epoch, batch_size):
+        res = self.model.fit(self.X_train, self.Y_train,
+                             validation_data=(self.X_test, self.Y_test),
+                             nb_epoch=nb_epoch, batch_size=batch_size, verbose=settings.verbose)
+        res_train = res.history['acc']
+        res_test = res.history['val_acc']
+        return res_train, res_test
 
-        plt.plot(res_train, color = 'blue')
-        plt.plot(res_test, color = 'red')
-        plt.grid(True)
-        plt.show()
+
 
 
     def standart_evaluate(self, X, Y, show=True):
@@ -147,9 +233,19 @@ class Teacher:
 
 
 if __name__ == "__main__":
-    t = Teacher()
-    t.load()
-    t.make_model()
-    t.train_and_fix_learning(nb_epoch=150, batch_size=32)
-    t.standart_evaluate(t.X_test, t.Y_test, show=True)
+    # t = Teacher()
+    # t.load()
+    # t.build_model()
+    # res_train, res_test = t.train(nb_epoch=settings.nb_epoch, batch_size=settings.batch_size)
+    # plt.plot(res_train, color='blue')
+    # plt.plot(res_test, color='red')
+    # plt.grid(True)
+    # plt.show()
+    # t.standart_evaluate(t.X_test, t.Y_test, show=True)
     # t.traiding_evaluate(t.X_test, t.Y_test)
+    ga = GA(population_size=settings.population_size,
+            genotype_size=settings.genotype_size,
+            amount_generations=settings.amount_generations,
+            crossing_rate=settings.crossing_rate,
+            mutation_rate=settings.mutation_rate)
+    ga.evalution()
