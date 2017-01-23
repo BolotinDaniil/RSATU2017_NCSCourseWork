@@ -52,8 +52,13 @@ class GA:
         self.nn = Teacher()
         self.nn.load()
 
+    def _generate_gen(self, rand=None):
+        if rand is None:
+            rand = np.random.rand()
+        return rand * 2 * settings.max_abs_init_weight - settings.max_abs_init_weight
+
     def build_inital_polulation(self):
-        self.population = np.random.random((self.pop_size, self.genotype_size)) * settings.max_init_weight
+        self.population = self._generate_gen(np.random.random((self.pop_size, self.genotype_size)))
 
     def conv_genotype(self, genotype):
         w1 = np.array(genotype[0:5*64])
@@ -62,13 +67,13 @@ class GA:
         w2 = np.array(genotype[6*64: 6*64+64])
         w2.shape = (64, 1)
         b2 = np.array(genotype[7*64])
-        b2.shape=(1)
+        b2.shape = (1)
         return (w1, b1, w2, b2)
 
     def mutate_genotype(self, genotype_index):
         gi = genotype_index
         for i in range(int(np.random.randint(0, self.genotype_size //2 * 3))):
-            self.population[gi][np.random.randint(0, self.genotype_size)] = np.random.rand() * settings.max_init_weight
+            self.population[gi][np.random.randint(0, self.genotype_size)] = self._generate_gen()
 
     def crossing_genotypes(self, p1, p2):
         '''
@@ -127,8 +132,8 @@ class GA:
         self.population = new_population
 
         # heuristic
-        if np.var(new_scores)**0.5 < 0.01:
-            self.amount_winners = 17
+        if np.var(new_scores)**0.5 < 0.03:
+            self.amount_winners = 14
         elif np.var(new_scores)**0.5 > 0.2:
             self.amount_winners = 20
         else:

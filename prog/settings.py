@@ -8,5 +8,5 @@ genotype_size = 7 * 64 + 1
 crossing_rate = 4
 mutation_rate = 0.5
 amount_generations = 500
-max_init_weight = 0.5
+max_abs_init_weight = 0.5
 
