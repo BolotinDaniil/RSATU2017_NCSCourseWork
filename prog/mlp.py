@@ -38,6 +38,7 @@ from dataset import DataSrc
 import gzip
 
 # Third-party libraries
+import os
 import numpy as np
 import theano
 import theano.tensor as T
@@ -55,6 +56,11 @@ from theano.tensor import tanh
 
 #### Constants
 GPU = False
+
+# init theano
+# theano.config.exception_verbosity = 'high'
+# theano.config.mode = 'DebugMode'
+theano.config.mode = 'FAST_RUN'
 if GPU:
     print("Trying to run under a GPU")
     try: theano.config.device = 'gpu'
@@ -94,9 +100,9 @@ class MLP(object):
         test_x, test_y = test_data
 
         # compute number of minibatches for training, validation and testing
-        num_training_batches = size(training_data)/mini_batch_size
-        num_validation_batches = size(validation_data)/mini_batch_size
-        num_test_batches = size(test_data)/mini_batch_size
+        num_training_batches = size(training_data)//mini_batch_size
+        num_validation_batches = size(validation_data)//mini_batch_size
+        num_test_batches = size(test_data)//mini_batch_size
 
         # define the (regularized) cost function, symbolic gradients, and updates
         l2_norm_squared = sum([(layer.w**2).sum() for layer in self.layers])
@@ -149,7 +155,7 @@ class MLP(object):
                 cost_ij = train_mb(minibatch_index)
                 if (iteration+1) % num_training_batches == 0:
                     validation_accuracy = np.mean(
-                        [validate_mb_accuracy(j) for j in xrange(num_validation_batches)])
+                        [validate_mb_accuracy(j) for j in range(num_validation_batches)])
                     print("Epoch {0}: validation accuracy {1:.2%}".format(
                         epoch, validation_accuracy))
                     if validation_accuracy >= best_validation_accuracy:
@@ -158,7 +164,7 @@ class MLP(object):
                         best_iteration = iteration
                         if test_data:
                             test_accuracy = np.mean(
-                                [test_mb_accuracy(j) for j in xrange(num_test_batches)])
+                                [test_mb_accuracy(j) for j in range(num_test_batches)])
                             print('The corresponding test accuracy is {0:.2%}'.format(
                                 test_accuracy))
         print("Finished training network.")
@@ -229,6 +235,7 @@ class SoftmaxLayer(object):
 
     def cost(self, net):
         "Return the log-likelihood cost."
+
         return -T.mean(T.log(self.output_dropout)[T.arange(net.y.shape[0]), net.y])
 
     def accuracy(self, y):
@@ -239,8 +246,8 @@ class SoftmaxLayer(object):
 #### Miscellanea
 def size(data):
     "Return the size of the dataset `data`."
-    # return data[0].get_value(borrow=True).shape[0]
-    return data[0].shape[0]
+    return data[0].get_value(borrow=True).shape[0]
+    # return data[0].shape[0]
 
 def dropout_layer(layer, p_dropout):
     srng = shared_randomstreams.RandomStreams(
@@ -252,9 +259,14 @@ def dropout_layer(layer, p_dropout):
 def test_mlp():
     datasrc = DataSrc()
     X, y, X_val, y_val = datasrc.load()
-    layers = [DenseLayer(5, 5), SoftmaxLayer(5,1)]
+    X = theano.shared(X)
+    y = theano.shared(y.astype('int32'))
+    print(y)
+    X_val = theano.shared(X_val)
+    y_val = theano.shared(y_val.astype('int32'))
+    layers = [DenseLayer(5, 64, ReLU), SoftmaxLayer(64, 2)]
     m = MLP(layers, 32)
-    m.fit_SGD((X, y), 40, 32, 0.001, (X_val, y_val), (X_val, y_val))
+    m.fit_SGD((X, y), 40, 32, 0.1, (X_val, y_val), (X_val, y_val))
 
 if __name__ == '__main__':
     test_mlp()
