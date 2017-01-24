@@ -30,6 +30,8 @@ versions of Theano.
 
 """
 
+from dataset import DataSrc
+
 #### Libraries
 # Standard library
 # import cPickle
@@ -77,15 +79,15 @@ class MLP(object):
         self.y = T.ivector("y")
         init_layer = self.layers[0]
         init_layer.set_inpt(self.x, self.x, self.mini_batch_size)
-        for j in xrange(1, len(self.layers)):
+        for j in range(1, len(self.layers)):
             prev_layer, layer  = self.layers[j-1], self.layers[j]
             layer.set_inpt(
                 prev_layer.output, prev_layer.output_dropout, self.mini_batch_size)
         self.output = self.layers[-1].output
         self.output_dropout = self.layers[-1].output_dropout
 
-    def SGD(self, training_data, epochs, mini_batch_size, eta,
-            validation_data, test_data, lmbda=0.0):
+    def fit_SGD(self, training_data, epochs, mini_batch_size, eta,
+            validation_data, test_data, lmbda=0.0, weights=None, biases=None):
         """Train the network using mini-batch stochastic gradient descent."""
         training_x, training_y = training_data
         validation_x, validation_y = validation_data
@@ -139,8 +141,8 @@ class MLP(object):
             })
         # Do the actual training
         best_validation_accuracy = 0.0
-        for epoch in xrange(epochs):
-            for minibatch_index in xrange(num_training_batches):
+        for epoch in range(epochs):
+            for minibatch_index in range(num_training_batches):
                 iteration = num_training_batches*epoch+minibatch_index
                 if iteration % 1000 == 0:
                     print("Training mini-batch number {0}".format(iteration))
@@ -168,29 +170,24 @@ class MLP(object):
 
 class DenseLayer(object):
 
-    def __init__(self, n_in, n_out, activation_fn=sigmoid, p_dropout=0.0, weights, biases):
+    def __init__(self, n_in, n_out, activation_fn=sigmoid, p_dropout=0.0):
         self.n_in = n_in
         self.n_out = n_out
         self.activation_fn = activation_fn
         self.p_dropout = p_dropout
         # Initialize weights and biases
-        if weights == None:
-            self.w = theano.shared(
-                np.asarray(
-                    np.random.normal(
-                        loc=0.0, scale=np.sqrt(1.0/n_out), size=(n_in, n_out)),
-                    dtype=theano.config.floatX),
-                name='w', borrow=True)
-        else:
-            self.w = weights
+        self.w = theano.shared(
+             np.asarray(
+                np.random.normal(
+                    loc=0.0, scale=np.sqrt(1.0/n_out), size=(n_in, n_out)),
+                dtype=theano.config.floatX),
+            name='w', borrow=True)
 
-        if biases == None:
-            self.b = theano.shared(
-                np.asarray(np.random.normal(loc=0.0, scale=1.0, size=(n_out,)),
-                        dtype=theano.config.floatX),
-                name='b', borrow=True)
-        else:
-            self.b = biases
+        self.b = theano.shared(
+            np.asarray(np.random.normal(loc=0.0, scale=1.0, size=(n_out,)),
+                    dtype=theano.config.floatX),
+            name='b', borrow=True)
+
         self.params = [self.w, self.b]
 
     def set_inpt(self, inpt, inpt_dropout, mini_batch_size):
@@ -242,10 +239,22 @@ class SoftmaxLayer(object):
 #### Miscellanea
 def size(data):
     "Return the size of the dataset `data`."
-    return data[0].get_value(borrow=True).shape[0]
+    # return data[0].get_value(borrow=True).shape[0]
+    return data[0].shape[0]
 
 def dropout_layer(layer, p_dropout):
     srng = shared_randomstreams.RandomStreams(
         np.random.RandomState(0).randint(999999))
     mask = srng.binomial(n=1, p=1-p_dropout, size=layer.shape)
     return layer*T.cast(mask, theano.config.floatX)
+
+
+def test_mlp():
+    datasrc = DataSrc()
+    X, y, X_val, y_val = datasrc.load()
+    layers = [DenseLayer(5, 5), SoftmaxLayer(5,1)]
+    m = MLP(layers, 32)
+    m.fit_SGD((X, y), 40, 32, 0.001, (X_val, y_val), (X_val, y_val))
+
+if __name__ == '__main__':
+    test_mlp()

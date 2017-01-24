@@ -139,8 +139,8 @@ class GA:
         else:
             self.amount_winners = 20
 
-        print('generation: {}, mean: {}, deviation: {}'
-              .format(self.number_generation, np.mean(new_scores), np.var(new_scores)**0.5))
+        print('generation: {}, mean: {}, deviation: {}, max: {}'
+              .format(self.number_generation, np.mean(new_scores), np.var(new_scores)**0.5, new_scores[0]))
 
 
     def evalution(self):
