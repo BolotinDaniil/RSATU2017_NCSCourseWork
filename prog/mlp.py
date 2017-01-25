@@ -93,8 +93,20 @@ class MLP(object):
         self.output_dropout = self.layers[-1].output_dropout
 
     def fit_SGD(self, training_data, epochs, mini_batch_size, eta,
-            validation_data, test_data, lmbda=0.0, weights=None, biases=None):
-        """Train the network using mini-batch stochastic gradient descent."""
+            validation_data, test_data, lmbda=0.0,verbose = 0, weights_biases=None):
+        '''
+        training via backpropagation
+
+        :param training_data:
+        :param epochs:
+        :param mini_batch_size:
+        :param eta:
+        :param validation_data:
+        :param test_data:
+        :param lmbda:
+        :param weights_biases: array inital weights and biases
+        :return:
+        '''
         training_x, training_y = training_data
         validation_x, validation_y = validation_data
         test_x, test_y = test_data
@@ -103,6 +115,13 @@ class MLP(object):
         num_training_batches = size(training_data)//mini_batch_size
         num_validation_batches = size(validation_data)//mini_batch_size
         num_test_batches = size(test_data)//mini_batch_size
+
+        self.mini_batch_size = mini_batch_size
+
+        # apply weights
+        if not weights_biases is None:
+            for i in range(len(self.params)):
+                self.params[i] = theano.shared(weights_biases[i])
 
         # define the (regularized) cost function, symbolic gradients, and updates
         l2_norm_squared = sum([(layer.w**2).sum() for layer in self.layers])
@@ -172,6 +191,28 @@ class MLP(object):
             best_validation_accuracy, best_iteration))
         print("Corresponding test accuracy of {0:.2%}".format(test_accuracy))
 
+    def evaluate(self, data):
+        X, y = data
+        print(X.get_value(borrow=True).shape[0])
+        print(y.get_value(borrow=True).shape[0])
+        i = T.lscalar()  # mini-batch index
+        ds = size(data)
+        print(ds)
+        test_mb_accuracy = theano.function(
+            [i], self.layers[-1].accuracy(self.y),
+            givens={
+                self.x:
+                    X[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
+                self.y:
+                    y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
+            }
+          )
+        acc = np.mean([test_mb_accuracy(i) for i in range(ds//self.mini_batch_size)])
+        return acc
+
+    def predict(self, X):
+        pass
+
 #### Define layer types
 
 class DenseLayer(object):
@@ -209,6 +250,10 @@ class DenseLayer(object):
     def accuracy(self, y):
         "Return the accuracy for the mini-batch."
         return T.mean(T.eq(y, self.y_out))
+
+    def cost(self, net):
+        "Return the log-likelihood cost."
+        return -T.mean(T.log(self.output_dropout)[T.arange(net.y.shape[0]), net.y])
 
 class SoftmaxLayer(object):
 
@@ -261,12 +306,13 @@ def test_mlp():
     X, y, X_val, y_val = datasrc.load()
     X = theano.shared(X)
     y = theano.shared(y.astype('int32'))
-    print(y)
     X_val = theano.shared(X_val)
     y_val = theano.shared(y_val.astype('int32'))
+    print(y_val)
     layers = [DenseLayer(5, 64, ReLU), SoftmaxLayer(64, 2)]
     m = MLP(layers, 32)
     m.fit_SGD((X, y), 40, 32, 0.1, (X_val, y_val), (X_val, y_val))
+    print(m.evaluate((X_val, y_val)))
 
 if __name__ == '__main__':
     test_mlp()
