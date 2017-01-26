@@ -4,3 +4,8 @@
 /report.log
 *.pdf
 *.gz
+*.bbl
+*.bcf
+*.blg
+*.xml
+*.log

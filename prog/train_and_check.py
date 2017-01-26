@@ -18,8 +18,7 @@ import math
 import matplotlib.pyplot as plt
 from keras import backend as K
 import numpy as np
-import settings
-
+from config_parser import config
 def get_class_labes(res):
     m = 0
     r = 0
@@ -48,14 +47,14 @@ class GA:
         self.amount_generations = amount_generations
         self.c_r = crossing_rate
         self.m_r = mutation_rate
-        self.amount_winners = settings.amount_winners
+        self.amount_winners = config['GA']['amount_winners']
         self.nn = Teacher()
         self.nn.load()
 
     def _generate_gen(self, rand=None):
         if rand is None:
             rand = np.random.rand()
-        return rand * 2 * settings.max_abs_init_weight - settings.max_abs_init_weight
+        return rand * 2 * config['GA']['max_abs_init_weight'] - config['GA']['max_abs_init_weight']
 
     def build_inital_polulation(self):
         self.population = self._generate_gen(np.random.random((self.pop_size, self.genotype_size)))
@@ -107,7 +106,7 @@ class GA:
     def fit_genotype(self, genotype):
         init_weights = self.conv_genotype(genotype)
         self.nn.build_model(init_weights)
-        _, r = self.nn.train(settings.nb_epoch, settings.batch_size)
+        _, r = self.nn.train(config['MLP']['nb_epoch'], config['MLP']['batch_size'])
         return r[-1]
 
 
@@ -196,12 +195,10 @@ class Teacher:
     def train(self, nb_epoch, batch_size):
         res = self.model.fit(self.X_train, self.Y_train,
                              validation_data=(self.X_test, self.Y_test),
-                             nb_epoch=nb_epoch, batch_size=batch_size, verbose=settings.verbose)
+                             nb_epoch=nb_epoch, batch_size=batch_size, verbose=config['MLP']['verbose'])
         res_train = res.history['acc']
         res_test = res.history['val_acc']
         return res_train, res_test
-
-
 
 
     def standart_evaluate(self, X, Y, show=True):
@@ -253,9 +250,9 @@ if __name__ == "__main__":
     # plt.show()
     # t.standart_evaluate(t.X_test, t.Y_test, show=True)
     # t.traiding_evaluate(t.X_test, t.Y_test)
-    ga = GA(population_size=settings.population_size,
-            genotype_size=settings.genotype_size,
-            amount_generations=settings.amount_generations,
-            crossing_rate=settings.crossing_rate,
-            mutation_rate=settings.mutation_rate)
+    ga = GA(population_size=config['GA']['population_size'],
+            genotype_size=config['GA']['genotype_size'],
+            amount_generations=config['GA']['amount_generations'],
+            crossing_rate=config['GA']['crossing_rate'],
+            mutation_rate=config['GA']['mutation_rate'])
     ga.evalution()
