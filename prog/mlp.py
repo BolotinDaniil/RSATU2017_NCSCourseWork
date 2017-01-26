@@ -92,8 +92,15 @@ class MLP(object):
         self.output = self.layers[-1].output
         self.output_dropout = self.layers[-1].output_dropout
 
+    def set_weights(self, weights_biases):
+        for i in range(1, len(self.layers)):
+            self.layers[i].w = theano.shared(weights_biases[2*i - 2])
+            self.layers[i].b = theano.shared(weights_biases[2*i - 1])
+
+        self.params = [param for layer in self.layers for param in layer.params]
+
     def fit_SGD(self, training_data, epochs, mini_batch_size, eta,
-            validation_data, test_data, lmbda=0.0,verbose = 0, weights_biases=None):
+            validation_data, test_data, lmbda=0.0, verbose = 0, weights_biases=None):
         '''
         training via backpropagation
 
@@ -120,8 +127,7 @@ class MLP(object):
 
         # apply weights
         if not weights_biases is None:
-            for i in range(len(self.params)):
-                self.params[i] = theano.shared(weights_biases[i])
+            self.set_weights(weights_biases)
 
         # define the (regularized) cost function, symbolic gradients, and updates
         l2_norm_squared = sum([(layer.w**2).sum() for layer in self.layers])
@@ -170,34 +176,30 @@ class MLP(object):
             for minibatch_index in range(num_training_batches):
                 iteration = num_training_batches*epoch+minibatch_index
                 if iteration % 1000 == 0:
-                    print("Training mini-batch number {0}".format(iteration))
+                    if verbose > 0: print("Training mini-batch number {0}".format(iteration))
                 cost_ij = train_mb(minibatch_index)
                 if (iteration+1) % num_training_batches == 0:
                     validation_accuracy = np.mean(
                         [validate_mb_accuracy(j) for j in range(num_validation_batches)])
-                    print("Epoch {0}: validation accuracy {1:.2%}".format(
+                    if verbose > 0: print("Epoch {0}: validation accuracy {1:.2%}".format(
                         epoch, validation_accuracy))
                     if validation_accuracy >= best_validation_accuracy:
-                        print("This is the best validation accuracy to date.")
+                        if verbose > 1: print("This is the best validation accuracy to date.")
                         best_validation_accuracy = validation_accuracy
                         best_iteration = iteration
                         if test_data:
                             test_accuracy = np.mean(
                                 [test_mb_accuracy(j) for j in range(num_test_batches)])
-                            print('The corresponding test accuracy is {0:.2%}'.format(
+                            if verbose > 0: print('The corresponding test accuracy is {0:.2%}'.format(
                                 test_accuracy))
-        print("Finished training network.")
-        print("Best validation accuracy of {0:.2%} obtained at iteration {1}".format(
+        if verbose > 0: print("Best validation accuracy of {0:.2%} obtained at iteration {1}".format(
             best_validation_accuracy, best_iteration))
-        print("Corresponding test accuracy of {0:.2%}".format(test_accuracy))
+        if verbose > 0: print("Corresponding test accuracy of {0:.2%}".format(test_accuracy))
 
     def evaluate(self, data):
         X, y = data
-        print(X.get_value(borrow=True).shape[0])
-        print(y.get_value(borrow=True).shape[0])
         i = T.lscalar()  # mini-batch index
         ds = size(data)
-        print(ds)
         test_mb_accuracy = theano.function(
             [i], self.layers[-1].accuracy(self.y),
             givens={
