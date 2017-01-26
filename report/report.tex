@@ -21,11 +21,13 @@
 		    format = hang,
 		    singlelinecheck=false
 		    ]{caption}
+		    
+		      
+		  
 
 \exhyphenpenalty=10000
 \doublehyphendemerits=10000
 \finalhyphendemerits=5000
-
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
@@ -165,6 +167,12 @@
 	{\{}{{{\color{brackets}\{}}}1 % Цвет скобок {
 	{\}}{{{\color{brackets}\}}}}1 % Цвет скобок }
 }
+
+
+\makeatletter % |список
+\renewcommand{\@biblabel}[1]{#1.}% |с
+\makeatother % |точкой
+
 \begin{document}
 
 \begin{titlepage}
@@ -210,7 +218,8 @@
 
 \newpage\section*{Задание}
 \addcontentsline{toc}{section}{Задание}
-Использовать генетический алгоритм для инициализации многослойного перцептрона и сравнить результаты со случайной инициализацией нейронной сети. Для обучения использовать алгоритм обратного распростаранения ошибки.
+Использовать генетический алгоритм для инициализации многослойного перцептрона и сравнить результаты со случайной инициализацией нейронной сети. Для обучения использовать алгоритм обратного распростаранения ошибки.\cite{big}
+
 
 \newpage\section*{Введение}
 \addcontentsline{toc}{section}{Введение}
@@ -347,6 +356,16 @@
 \item http://www.protesting.ru/testing/
 \end{enumerate}
 
+
+
+
+
+\renewcommand\refname{Список использованных источников}
+\addcontentsline{toc}{section}{Список использованных источников}
+% bibtex bibtiography from refs.bib
+\nocite{*}s
+\bibliographystyle{ugost2008} % ГОСТ
+\bibliography{refs}
 
 \newpage\section*{Приложения}
 \addcontentsline{toc}{section}{Приложения}
