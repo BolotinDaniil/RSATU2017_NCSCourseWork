@@ -2,7 +2,7 @@
   "MLP":{
     "layers":[5, 64, 2],
     "activation_fns": ["ReLu", "SoftMax"],
-    "nb_epoch": 4,
+    "nb_epoch": 2,
     "batch_size": 32,
     "learning_rate":0.1,
     "verbose": 0,

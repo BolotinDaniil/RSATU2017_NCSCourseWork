@@ -5,6 +5,7 @@ from dataset import DataSrc
 from utils import timeit
 import theano
 
+
 indexes = []
 scores = []
 
@@ -13,19 +14,24 @@ def sortByIndex(index):
     return scores[index]
 
 class GA:
-    def __init__(self, population_size, genotype_size, amount_generations, crossing_rate, mutation_rate):
+    def __init__(self, population_size, genotype_size, amount_generations, crossing_rate, mutation_rate,
+                 mlp, train_data, val_data):
         self.pop_size = population_size
         self.genotype_size = genotype_size
         self.amount_generations = amount_generations
         self.c_r = crossing_rate
         self.m_r = mutation_rate
+        self.number_generation = 0
         self.amount_winners = config['GA']['amount_winners']
 
-        layers = [DenseLayer(5, 64, ReLU), SoftmaxLayer(64, 2)]
-        self.nn = MLP(layers, config['MLP']['batch_size'])
+        # layers = [DenseLayer(5, 64, ReLU), SoftmaxLayer(64, 2)]
+        # self.nn = MLP(layers, config['MLP']['batch_size'])
+        self.nn = mlp
 
-        datasrc = DataSrc()
-        X, y, X_val, y_val = datasrc.load()
+        # datasrc = DataSrc()
+        # X, y, X_val, y_val = datasrc.load()
+        X, y = train_data
+        X_val, y_val = val_data
         self.X = theano.shared(X)
         self.y = theano.shared(y.astype('int32'))
         self.X_val = theano.shared(X_val)
@@ -92,14 +98,14 @@ class GA:
     def fit_genotype(self, genotype):
         init_weights = self.conv_genotype(genotype)
 
-        self.nn.fit_SGD((self.X, self.y),
+        r = self.nn.fit_SGD((self.X, self.y),
                         config['MLP']['nb_epoch'],
                         config['MLP']['batch_size'],
                         config['MLP']['learning_rate'],
                         (self.X_val, self.y_val), (self.X_val, self.y_val),
                         verbose=config['MLP']['verbose'],
                         weights_biases=init_weights)
-        r = self.nn.evaluate((self.X_val, self.y_val))
+        # r = self.nn.evaluate((self.X_val, self.y_val))
         return r
 
 
@@ -108,9 +114,12 @@ class GA:
         global indexes, scores
         indexes = []
         scores = []
+        val_hist = []
         for i in range(self.population.shape[0]):
             indexes.append(i)
-            scores.append(self.fit_genotype(self.population[i]))
+            r = self.fit_genotype(self.population[i])
+            scores.append(r[-1])
+            val_hist.append(r)
         indexes.sort(key=sortByIndex, reverse=True)
         new_population = np.empty((self.pop_size, self.genotype_size), dtype='float32')
         new_scores = np.empty( (self.pop_size), dtype='float32')
@@ -118,14 +127,15 @@ class GA:
             new_population[i] = self.population[indexes[i]]
             new_scores[i] = scores[indexes[i]]
         for i in range(self.amount_winners, self.pop_size):
-            index = [indexes[np.random.randint(self.amount_winners, self.population.shape[0])]]
+            index = indexes[np.random.randint(self.amount_winners, self.population.shape[0])]
             new_population[i] = self.population[index]
+            new_scores[i] = scores[index]
 
         self.population = new_population
 
         # heuristic
         if np.var(new_scores)**0.5 < 0.03:
-            self.amount_winners = 14
+            self.amount_winners = 10
         elif np.var(new_scores)**0.5 > 0.2:
             self.amount_winners = 20
         else:
@@ -134,6 +144,8 @@ class GA:
         print('generation: {}, mean: {}, deviation: {}, max: {}'
               .format(self.number_generation, np.mean(new_scores), np.var(new_scores)**0.5, new_scores[0]))
 
+        return new_scores, val_hist[indexes[0]]
+
 
     def evalution(self):
         self.build_inital_polulation()
@@ -141,6 +153,15 @@ class GA:
             self.number_generation = i + 1
             self.crossing()
             self.selection()
+
+    def step_evolution(self):
+        if self.number_generation < self.amount_generations:
+            self.number_generation += 1
+            self.crossing()
+            res = self.selection()
+        return res
+
+
 
 if __name__ == '__main__':
     ga = GA(population_size=config['GA']['population_size'],
