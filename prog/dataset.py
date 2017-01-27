@@ -3,7 +3,7 @@ import numpy as np
 
 class DataSrc():
     def __init__(self):
-        pass
+        self.file_name = ""
 
     def load(self):
         dataset_train = np.loadtxt("data/train.csv", delimiter=";")

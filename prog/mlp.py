@@ -94,13 +94,22 @@ class MLP(object):
 
     def set_weights(self, weights_biases):
         for i in range(1, len(self.layers)):
-            self.layers[i].w = theano.shared(weights_biases[2*i - 2])
-            self.layers[i].b = theano.shared(weights_biases[2*i - 1])
+            self.layers[i-1].w = theano.shared(weights_biases[2*i - 2], name='w', borrow=True)
+            self.layers[i-1].b = theano.shared(weights_biases[2*i - 1], name='b', borrow=True)
+            self.layers[i-1].params = [self.layers[i-1].w, self.layers[i-1].b]
 
         self.params = [param for layer in self.layers for param in layer.params]
+        init_layer = self.layers[0]
+        init_layer.set_inpt(self.x, self.x, self.mini_batch_size)
+        for j in range(1, len(self.layers)):
+            prev_layer, layer = self.layers[j - 1], self.layers[j]
+            layer.set_inpt(
+                prev_layer.output, prev_layer.output_dropout, self.mini_batch_size)
+        self.output = self.layers[-1].output
+        self.output_dropout = self.layers[-1].output_dropout
 
     def fit_SGD(self, training_data, epochs, mini_batch_size, eta,
-            validation_data, test_data, lmbda=0.0, verbose = 0, weights_biases=None):
+            validation_data, test_data, lmbda=0.0, verbose=0, weights_biases=None):
         '''
         training via backpropagation
 

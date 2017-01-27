@@ -1,9 +1,12 @@
 {
   "MLP":{
     "layers":[5, 64, 2],
+    "activation_fns": ["ReLu", "SoftMax"],
     "nb_epoch": 4,
     "batch_size": 32,
-    "verbose": 0
+    "learning_rate":0.1,
+    "verbose": 0,
+    "n_jobs": 2
   },
   "GA":{
     "population_size": 20,
@@ -12,5 +15,9 @@
     "mutation_rate": 0.5,
     "amount_generations": 500,
     "max_abs_init_weight": 0.5
+  },
+  "DATASET":{
+    "valid_share": 0.2,
+    "test_share": 0.1
   }
 }

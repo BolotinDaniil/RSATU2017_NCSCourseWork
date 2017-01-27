@@ -22,7 +22,7 @@ class GA:
         self.amount_winners = config['GA']['amount_winners']
 
         layers = [DenseLayer(5, 64, ReLU), SoftmaxLayer(64, 2)]
-        self.nn = MLP(layers, 32)
+        self.nn = MLP(layers, config['MLP']['batch_size'])
 
         datasrc = DataSrc()
         X, y, X_val, y_val = datasrc.load()
@@ -41,20 +41,15 @@ class GA:
         self.population = self._generate_gen(np.random.random((self.pop_size, self.genotype_size)))
 
     def conv_genotype(self, genotype):
-        w1 = np.array(genotype[0:5*64])
-        w1.shape = (5, 64)
-        b1 = np.array(genotype[5*64:6*64])
-        w2 = np.array(genotype[6*64: 6*64+64])
-        w2.shape = (64, 1)
-        b2 = np.array(genotype[7*64])
-        b2.shape = (1)
 
         cur = 0
         res = []
         for i in range(1, len(config['MLP']['layers'])):
-            w = np.array(genotype[cur: cur + config['MLP']['layers'][i] * config['MLP']['layers'][i-1]])
+            w = np.array(genotype[cur: cur + config['MLP']['layers'][i] * config['MLP']['layers'][i-1]], dtype=theano.config.floatX)
+            w.shape = (config['MLP']['layers'][i-1], config['MLP']['layers'][i])
             cur += config['MLP']['layers'][i] * config['MLP']['layers'][i-1]
-            b = np.array(genotype[cur: cur + config['MLP']['layers'][i]])
+            b = np.array(genotype[cur: cur + config['MLP']['layers'][i]], dtype=theano.config.floatX)
+            b.shape = (config['MLP']['layers'][i],)
             cur += config['MLP']['layers'][i]
             res.append(w)
             res.append(b)
@@ -97,7 +92,11 @@ class GA:
     def fit_genotype(self, genotype):
         init_weights = self.conv_genotype(genotype)
 
-        self.nn.fit_SGD((self.X, self.y), 4, 32, 0.1, (self.X_val, self.y_val), (self.X_val, self.y_val),
+        self.nn.fit_SGD((self.X, self.y),
+                        config['MLP']['nb_epoch'],
+                        config['MLP']['batch_size'],
+                        config['MLP']['learning_rate'],
+                        (self.X_val, self.y_val), (self.X_val, self.y_val),
                         verbose=config['MLP']['verbose'],
                         weights_biases=init_weights)
         r = self.nn.evaluate((self.X_val, self.y_val))
