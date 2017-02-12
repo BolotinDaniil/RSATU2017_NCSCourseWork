@@ -111,6 +111,10 @@ class GA:
 
     @timeit
     def selection(self):
+        '''
+
+        :return: scores of population, train history for best network
+        '''
         global indexes, scores
         indexes = []
         scores = []
