@@ -18,6 +18,8 @@
   },
   "DATASET":{
     "valid_share": 0.2,
-    "test_share": 0.1
+    "test_share": 0.1,
+    "len_group": 5,
+    "len_order": 1
   }
 } 

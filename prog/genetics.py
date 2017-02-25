@@ -4,6 +4,7 @@ from mlp import MLP, DenseLayer, SoftmaxLayer, ReLU
 from dataset import DataSrc
 from utils import timeit
 import theano
+import copy
 
 
 indexes = []
@@ -32,6 +33,8 @@ class GA:
         # X, y, X_val, y_val = datasrc.load()
         X, y = train_data
         X_val, y_val = val_data
+        self.np_X = X
+        self.np_y = y
         self.X = theano.shared(X)
         self.y = theano.shared(y.astype('int32'))
         self.X_val = theano.shared(X_val)
@@ -136,6 +139,12 @@ class GA:
             new_scores[i] = scores[index]
 
         self.population = new_population
+
+        # save best network
+        self.fit_genotype(self.population[0])
+        self.best_nn = copy.deepcopy(self.nn)
+        print(self.best_nn.predict(self.np_X))
+
 
         # heuristic
         if np.var(new_scores)**0.5 < 0.03:

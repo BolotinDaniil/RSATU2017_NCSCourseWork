@@ -26,7 +26,7 @@ class MainWindow(QtWidgets.QMainWindow, main_window_class):
         self.init_canvases()
 
         self.data_src = DataSrc()
-        self.data_src.load_raw_data('data/BRENT_001101_161101_1DAY.csv')
+        self.data_src.load_raw_data('data/RTS_001101_161101.csv')
 
         # show dataset
         _, _, data = self.data_src.get_raw_data()
@@ -131,7 +131,7 @@ class CanvasFit(FigureCanvas):
         fig = Figure(figsize=(width, height), dpi=dpi)
 
         self.axes1 = fig.add_subplot(2, 1, 1)
-        self.axes1.set_title('accaracy by fit')
+        self.axes1.set_title('accuracy by fit')
         self.axes2 = fig.add_subplot(2, 1, 2)
         self.axes2.set_title('generations fitness')
 
@@ -147,7 +147,7 @@ class CanvasFit(FigureCanvas):
 
     def prepare_plot1(self, plot):
         plot.clear()
-        plot.set_title('accaracy by fit')
+        plot.set_title('accuracy by fit')
         plot.grid(True)
         plot.plot(self.data[0])
 
@@ -188,6 +188,13 @@ class CanvasTest(FigureCanvas):
                                    QtWidgets.QSizePolicy.Expanding,
                                    QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
+
+    def plot(self):
+        pass
+
+    def show_plot(self):
+        pass
+
 
 
 

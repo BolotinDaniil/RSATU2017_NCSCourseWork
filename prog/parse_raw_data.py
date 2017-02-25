@@ -102,7 +102,7 @@ class DataParser:
             ndata.append(0)
         return ndata
 
-    def parse_for_visial_analys(self, len_group = 24,len_order = 1, len_test = 30):
+    def parse_for_visial_analys(self, len_group = 24, len_order = 1, len_test = 30):
         #return data in the form
         #that we can  see in traiding platform
         f = open("data/train.csv", 'wb')
@@ -135,6 +135,6 @@ if __name__ == "__main__":
     # d.parse_and_save_data(len_group = 20, min_border = 4,  len_test = 30 * 5)
     # d.load("BRENT_141101_161101_1DAY.csv")
 
-    d.load("data/BRENT_001101_161101_1DAY.csv")
+    d.load("data/RTS_001101_161101.csv")
     d.parse_for_visial_analys(len_group = 5, len_order = 1, len_test = 30 * 5)
     # d.parse_and_save_data(len_group = 8,  len_test = 30 * 5)

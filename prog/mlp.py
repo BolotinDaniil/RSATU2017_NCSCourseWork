@@ -10,6 +10,7 @@ import gzip
 import os
 import numpy as np
 import theano
+import copy
 import theano.tensor as T
 from theano.tensor.nnet import conv
 from theano.tensor.nnet import softmax
@@ -194,7 +195,35 @@ class MLP(object):
         return acc
 
     def predict(self, X):
-        pass
+        '''
+        :param X: numpy array
+        :return: predicted values
+        '''
+        i = T.lscalar()  # mini-batch index
+        ds = X.shape[0]
+        # _X = np.copy(X)
+        _X = copy.deepcopy(X)
+        # print(_X)
+        nb_empty = 0
+        if ds % self.mini_batch_size > 0:
+            nb_empty = self.mini_batch_size - (ds % self.mini_batch_size)
+            for j in range(nb_empty):
+                _X = np.concatenate((_X, [_X[-1]]))
+
+        _th_X = theano.shared(_X)
+        # th_X = theano.shared(X)
+        predict_mb = theano.function(
+            [i], self.layers[-1].y_out,
+            givens={
+                self.x:
+                    _th_X[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
+            })
+        out = []
+        for j in range(ds // self.mini_batch_size):
+	        out = np.concatenate((out, predict_mb(j)))
+        # remove unnecessary
+        out = np.delete(out, np.s_[ds:ds+nb_empty], 0)
+        return out
 
 #### Define layer types
 
