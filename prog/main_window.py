@@ -27,9 +27,15 @@ class MainWindow(QtWidgets.QMainWindow, main_window_class):
 
         self.data_src = DataSrc()
         self.data_src.load_raw_data('data/RTS_001101_161101.csv')
+        self.data_src.load_data('data/RTS_001101_161101.csv',
+                                len_group=config['DATASET']['len_group'],
+                                len_order=config['DATASET']['len_order'],
+                                valid_share=config['DATASET']['valid_share'],
+                                test_share=config['DATASET']['test_share'],
+                                )
 
         # show dataset
-        _, _, data = self.data_src.get_raw_data()
+        data = self.data_src.get_all_raw_data()
         self.canvas_dataset.data = data
         self.canvas_dataset.plot()
 

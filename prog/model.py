@@ -15,15 +15,15 @@ class GA_MLP:
         self.stop_event = threading.Event()
         layers = [DenseLayer(5, 64, ReLU), SoftmaxLayer(64, 2)]
         mlp = MLP(layers, config['MLP']['batch_size'])
-        X, y, X_val, y_val = main_window.data_src.load_data()
+        train, valid, test = main_window.data_src.get_dataset()
         ga = GA(population_size=config['GA']['population_size'],
                 genotype_size=config['GA']['genotype_size'],
                 amount_generations=config['GA']['amount_generations'],
                 crossing_rate=config['GA']['crossing_rate'],
                 mutation_rate=config['GA']['mutation_rate'],
                 mlp=mlp,
-                train_data=(X, y),
-                val_data=(X_val, y_val))
+                train_data=train,
+                val_data=valid)
         ga.build_inital_polulation()
         self.ga = ga
         self.main_window = main_window
@@ -46,6 +46,9 @@ class GA_MLP:
             self.main_window.canvas_fit.data[1].append(scores[0])
             self.main_window.canvas_fit.data[2].append(np.mean(scores))
             self.main_window.canvas_fit.plot()
+
+    def test(self):
+        pass
 
 def fit_model(main_window):
     m = GA_MLP(main_window)

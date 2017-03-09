@@ -219,7 +219,7 @@ class MLP(object):
                     _th_X[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
             })
         out = []
-        for j in range(ds // self.mini_batch_size):
+        for j in range((ds + nb_empty) // self.mini_batch_size):
 	        out = np.concatenate((out, predict_mb(j)))
         # remove unnecessary
         out = np.delete(out, np.s_[ds:ds+nb_empty], 0)
