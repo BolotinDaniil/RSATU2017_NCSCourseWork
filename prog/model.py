@@ -48,7 +48,25 @@ class GA_MLP:
             self.main_window.canvas_fit.plot()
 
     def test(self):
-        pass
+        train, valid, test = self.main_window.data_src.get_dataset()
+        _, _, raw_test = self.main_window.data_src.get_raw_data()
+
+        X, y = test
+        pred = self.ga.best_nn.predict(X)
+
+        ds = len(raw_test)
+        acc = 0
+        for i in range(ds):
+            if abs(pred[i] - y[i]) < 0.5:
+                acc +=1
+        acc = float(acc) / ds
+
+        self.main_window.label_acc.setText(str(acc))
+
+        self.main_window.canvas_test.data = raw_test, y, pred
+        self.main_window.canvas_test.plot()
+
+
 
 def fit_model(main_window):
     m = GA_MLP(main_window)

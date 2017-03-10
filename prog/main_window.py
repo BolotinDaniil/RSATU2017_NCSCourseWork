@@ -78,7 +78,7 @@ class MainWindow(QtWidgets.QMainWindow, main_window_class):
             self.model.stop_event.set()
 
     def button_click_run_test(self):
-        pass
+        self.model.test()
 
 
 
@@ -195,11 +195,34 @@ class CanvasTest(FigureCanvas):
                                    QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
+        # raw, true, predict data
+        self.data = [[], [], []]
+
+    def prepare_plot(self, plot):
+        plot.clear()
+        plot.set_title('test')
+        plot.grid(True)
+
+        raw, y, pred = self.data
+        ds = len(raw)
+        x = np.arange(0, ds, 1)
+        for i in range(1, ds):
+            if abs(pred[i] - y[i]) < 0.5:  # true answer
+                color = 'g'
+            else:
+                color = 'r'
+            plot.plot(x[i - 1:i + 1], raw[i - 1:i + 1], color=color)
+
+
     def plot(self):
-        pass
+        plot = self.figure.add_subplot(1, 1, 1)
+        self.prepare_plot(plot)
+        self.draw()
 
     def show_plot(self):
-        pass
+        plot = plt.subplot(1, 1, 1)
+        self.prepare_plot(plot)
+        plt.show()
 
 
 
