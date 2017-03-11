@@ -26,8 +26,7 @@ class MainWindow(QtWidgets.QMainWindow, main_window_class):
         self.init_canvases()
 
         self.data_src = DataSrc()
-        self.data_src.load_raw_data('data/RTS_001101_161101.csv')
-        self.data_src.load_data('data/RTS_001101_161101.csv',
+        self.data_src.load_data('data/BRENT_001101_161101_1DAY.csv',
                                 len_group=config['DATASET']['len_group'],
                                 len_order=config['DATASET']['len_order'],
                                 valid_share=config['DATASET']['valid_share'],
@@ -57,7 +56,7 @@ class MainWindow(QtWidgets.QMainWindow, main_window_class):
         self.canvas_dataset = m
 
         self.canvas_fit = CanvasFit(self.tab_fit, width=7, height=3.5)
-        self.canvas_test = CanvasTest(self.tab_test, width=7, height=4)
+        self.canvas_test = CanvasTest(self.tab_test, width=7, height=3.5)
 
 
     def button_click_view_dataset(self):
@@ -187,7 +186,7 @@ class CanvasTest(FigureCanvas):
         self.axes = fig.add_subplot(111)
 
         FigureCanvas.__init__(self, fig)
-        self.move(20, 100)
+        self.move(20, 160)
         self.setParent(parent)
 
         FigureCanvas.setSizePolicy(self,

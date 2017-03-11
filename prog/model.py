@@ -49,19 +49,28 @@ class GA_MLP:
 
     def test(self):
         train, valid, test = self.main_window.data_src.get_dataset()
-        _, _, raw_test = self.main_window.data_src.get_raw_data()
+        _, raw_valid, raw_test = self.main_window.data_src.get_raw_data()
 
         X, y = test
+        spread = self.main_window.double_spin_box_spread.value()
         pred = self.ga.best_nn.predict(X)
 
         ds = len(raw_test)
         acc = 0
+        profit = 0
         for i in range(ds):
             if abs(pred[i] - y[i]) < 0.5:
                 acc +=1
+                profit += abs(raw_test[i] - raw_test[i - 1])
+            else:
+                profit -= abs(raw_test[i] - raw_test[i - 1])
+            profit -= spread
+
         acc = float(acc) / ds
 
+        # show result
         self.main_window.label_acc.setText(str(acc))
+        self.main_window.label_profit.setText(str(profit))
 
         self.main_window.canvas_test.data = raw_test, y, pred
         self.main_window.canvas_test.plot()

@@ -4,14 +4,14 @@
     "activation_fns": ["ReLu", "SoftMax"],
     "nb_epoch": 4,
     "batch_size": 32,
-    "learning_rate":0.1,
+    "learning_rate":0.02,
     "verbose": 0,
     "n_jobs": 2
   },
   "GA":{
     "population_size": 20,
     "amount_winners": 19,
-    "crossing_rate": 4,
+    "crossing_rate": 8,
     "mutation_rate": 0.5,
     "amount_generations": 500,
     "max_abs_init_weight": 0.5
