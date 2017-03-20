@@ -1,10 +1,10 @@
 {
   "MLP":{
-    "layers":[5, 64, 2],
-    "activation_fns": ["ReLu", "SoftMax"],
-    "nb_epoch": 4,
+    "layers":[9, 32, 64, 2],
+    "activation_fns": ["ReLu","ReLu", "SoftMax"],
+    "nb_epoch": 6,
     "batch_size": 32,
-    "learning_rate":0.02,
+    "learning_rate":0.1,
     "verbose": 0,
     "n_jobs": 2
   },
@@ -19,7 +19,7 @@
   "DATASET":{
     "valid_share": 0.2,
     "test_share": 0.1,
-    "len_group": 5,
+    "len_group": 13,
     "len_order": 1
   }
 } 

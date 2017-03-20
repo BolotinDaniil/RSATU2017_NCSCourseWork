@@ -18,6 +18,7 @@ class DataSrc():
         print()
         print("file = ", file_name)
         df = pd.read_csv(file_name, sep=';')
+        self.raw_df = df
         # f = open(file_name, encoding='utf-8')
         # csv_iter = csv.reader(f, delimiter=';')
         # self.data_name = next(csv_iter)
@@ -66,6 +67,47 @@ class DataSrc():
         self.y = np.array(y)
         return self.X, self.y
 
+    def parse_with_indicators_2(self, len_order=1):
+        df = self.raw_df
+        X = []
+        y = []
+        OBV = df['<CLOSE>'][0]
+        for i in range(13, df['<CLOSE>'].count()):
+            # calc indicators
+            A = 0
+            for j in range(12):
+                if df['<CLOSE>'][i-j-2] < df['<CLOSE>'][i-j-1]:
+                    A += 1
+            SY = []
+            MA5 = 0.0
+            for j in range(5):
+                SY.append( (np.log1p(df['<CLOSE>'][i-j-1]) - np.log1p(df['<CLOSE>'][i-j-2])) )
+                MA5 += df['<CLOSE>'][i-j-1]
+            MA5 /= 5
+            sign = -1 if df['<CLOSE>'][i - 2] > df['<CLOSE>'][i - 1] else 1
+            OBV += sign * df['<VOL>'][i-1]
+            BIAS6 = (df['<CLOSE>'][i-1] - MA5) / MA5
+            PSY12 = float(A)/12
+            ASY = []
+            for j in range(5):
+                ASY.append(sum(SY[i: i+j+1]) / (j+1))
+            # hard normalization
+            MA5 /= 100000
+            OBV /= 100000
+            # append
+            if df['<CLOSE>'][i-1] < df['<CLOSE>'][i]:
+                y.append(1)
+            else:
+                y.append(0)
+            X.append([OBV, MA5, BIAS6, PSY12, ASY[4], ASY[3], ASY[2], ASY[1], ASY[0]])
+
+        self.X = np.array(X)
+        self.y = np.array(y)
+        return self.X, self.y
+
+
+
+
     def _get_split_points(self, valid_share, test_share):
         '''
         :param valid_share:
@@ -111,7 +153,8 @@ class DataSrc():
         self.len_order = len_order
 
         self.load_raw_data(file_name)
-        self.parse_for_visual_analys(len_group, len_order)
+        # self.parse_for_visual_analys(len_group, len_order)
+        self.parse_with_indicators_2(len_order)
 
         points_raw, points_clear = self._get_split_points(valid_share, test_share)
         val_split, test_split = points_raw

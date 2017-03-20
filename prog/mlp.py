@@ -56,7 +56,7 @@ class MLP(object):
         init_layer = self.layers[0]
         init_layer.set_inpt(self.x, self.x, self.mini_batch_size)
         for j in range(1, len(self.layers)):
-            prev_layer, layer  = self.layers[j-1], self.layers[j]
+            prev_layer, layer = self.layers[j-1], self.layers[j]
             layer.set_inpt(
                 prev_layer.output, prev_layer.output_dropout, self.mini_batch_size)
         self.output = self.layers[-1].output
@@ -69,6 +69,8 @@ class MLP(object):
             self.layers[i-1].params = [self.layers[i-1].w, self.layers[i-1].b]
 
         self.params = [param for layer in self.layers for param in layer.params]
+        self.x = T.matrix("x")
+        self.y = T.ivector("y")
         init_layer = self.layers[0]
         init_layer.set_inpt(self.x, self.x, self.mini_batch_size)
         for j in range(1, len(self.layers)):
@@ -105,6 +107,7 @@ class MLP(object):
         self.mini_batch_size = mini_batch_size
 
         # apply weights
+        # weights_biases = None
         if not weights_biases is None:
             self.set_weights(weights_biases)
 
@@ -127,6 +130,14 @@ class MLP(object):
                 self.y:
                 training_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
             })
+        train_mb_accuracy = theano.function(
+            [i], self.layers[-1].accuracy(self.y),
+            givens={
+                self.x:
+                    training_x[i * self.mini_batch_size: (i + 1) * self.mini_batch_size],
+                self.y:
+                    training_y[i * self.mini_batch_size: (i + 1) * self.mini_batch_size]
+            })
         validate_mb_accuracy = theano.function(
             [i], self.layers[-1].accuracy(self.y),
             givens={
@@ -135,6 +146,15 @@ class MLP(object):
                 self.y:
                 validation_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
             })
+        validate_mb_absolute_accuracy = theano.function(
+            [i], self.layers[-1].absolute_accuracy(self.y),
+            givens={
+                self.x:
+                    validation_x[i * self.mini_batch_size: (i + 1) * self.mini_batch_size],
+                self.y:
+                    validation_y[i * self.mini_batch_size: (i + 1) * self.mini_batch_size]
+            })
+
         test_mb_accuracy = theano.function(
             [i], self.layers[-1].accuracy(self.y),
             givens={
@@ -151,7 +171,16 @@ class MLP(object):
             })
         # Do the actual training
         best_validation_accuracy = 0.0
-        val_acc = []
+        train_acc = [
+            np.mean(
+                [train_mb_accuracy(j) for j in range(num_validation_batches)])
+        ]
+        validation_accuracy = np.sum(
+            [validate_mb_absolute_accuracy(j) for j in range(num_validation_batches)]) \
+                              / float(num_validation_batches * mini_batch_size)
+        val_acc = [
+            validation_accuracy
+        ]
         for epoch in range(epochs):
             for minibatch_index in range(num_training_batches):
                 iteration = num_training_batches*epoch+minibatch_index
@@ -159,9 +188,13 @@ class MLP(object):
                     if verbose > 0: print("Training mini-batch number {0}".format(iteration))
                 cost_ij = train_mb(minibatch_index)
                 if (iteration+1) % num_training_batches == 0:
-                    validation_accuracy = np.mean(
-                        [validate_mb_accuracy(j) for j in range(num_validation_batches)])
+                    validation_accuracy = np.sum(
+                        [validate_mb_absolute_accuracy(j) for j in range(num_validation_batches)]) \
+                                          / float(num_validation_batches * mini_batch_size)
+                    train_accuracy = np.mean(
+                        [train_mb_accuracy(j) for j in range(num_training_batches)])
                     val_acc.append(validation_accuracy)
+                    train_acc.append(train_accuracy)
                     if verbose > 0: print("Epoch {0}: validation accuracy {1:.2%}".format(
                         epoch, validation_accuracy))
                     if validation_accuracy >= best_validation_accuracy:
@@ -176,7 +209,7 @@ class MLP(object):
         if verbose > 0: print("Best validation accuracy of {0:.2%} obtained at iteration {1}".format(
             best_validation_accuracy, best_iteration))
         if verbose > 0: print("Corresponding test accuracy of {0:.2%}".format(test_accuracy))
-        return val_acc
+        return train_acc, val_acc
 
     def evaluate(self, data):
         X, y = data
@@ -263,6 +296,10 @@ class DenseLayer(object):
         "Return the accuracy for the mini-batch."
         return T.mean(T.eq(y, self.y_out))
 
+    def absolute_accuracy(self, y):
+        "Return the accuracy for the mini-batch."
+        return T.eq(y, self.y_out)
+
     def cost(self, net):
         "Return the log-likelihood cost."
         return -T.mean(T.log(self.output_dropout)[T.arange(net.y.shape[0]), net.y])
@@ -298,6 +335,9 @@ class SoftmaxLayer(object):
     def accuracy(self, y):
         "Return the accuracy for the mini-batch."
         return T.mean(T.eq(y, self.y_out))
+    def absolute_accuracy(self, y):
+        "Return the accuracy for the mini-batch."
+        return T.eq(y, self.y_out)
 
 
 #### Miscellanea

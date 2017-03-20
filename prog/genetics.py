@@ -101,7 +101,7 @@ class GA:
     def fit_genotype(self, genotype):
         init_weights = self.conv_genotype(genotype)
 
-        r = self.nn.fit_SGD((self.X, self.y),
+        rt, rv = self.nn.fit_SGD((self.X, self.y),
                         config['MLP']['nb_epoch'],
                         config['MLP']['batch_size'],
                         config['MLP']['learning_rate'],
@@ -109,7 +109,7 @@ class GA:
                         verbose=config['MLP']['verbose'],
                         weights_biases=init_weights)
         # r = self.nn.evaluate((self.X_val, self.y_val))
-        return r
+        return rt,rv
 
 
     @timeit
@@ -122,20 +122,30 @@ class GA:
         indexes = []
         scores = []
         val_hist = []
+        for _ in range(5):
+            l, r = self.fit_genotype(copy.deepcopy(self.population[0]))
+            print(l)
+            print(r)
+            print('-----')
+
+
         for i in range(self.population.shape[0]):
             indexes.append(i)
-            r = self.fit_genotype(self.population[i])
+            _, r = self.fit_genotype(self.population[i])
             scores.append(r[-1])
             val_hist.append(r)
         indexes.sort(key=sortByIndex, reverse=True)
+        for i in range(self.population.shape[0]):
+            print(scores[indexes[i]])
+
         new_population = np.empty((self.pop_size, self.genotype_size), dtype='float32')
         new_scores = np.empty( (self.pop_size), dtype='float32')
         for i in range(self.amount_winners):
-            new_population[i] = self.population[indexes[i]]
+            new_population[i] = copy.deepcopy(self.population[indexes[i]])
             new_scores[i] = scores[indexes[i]]
         for i in range(self.amount_winners, self.pop_size):
             index = indexes[np.random.randint(self.amount_winners, self.population.shape[0])]
-            new_population[i] = self.population[index]
+            new_population[i] = copy.deepcopy(self.population[index])
             new_scores[i] = scores[index]
 
         self.population = new_population
@@ -143,6 +153,7 @@ class GA:
         # save best network
         self.fit_genotype(self.population[0])
         self.best_nn = copy.deepcopy(self.nn)
+        self.best_genotype = copy.deepcopy(self.population[0])
         print(self.best_nn.predict(self.np_X))
 
 
