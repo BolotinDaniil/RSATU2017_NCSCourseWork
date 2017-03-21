@@ -81,7 +81,7 @@ class DataSrc():
             SY = []
             MA5 = 0.0
             for j in range(5):
-                SY.append( (np.log1p(df['<CLOSE>'][i-j-1]) - np.log1p(df['<CLOSE>'][i-j-2])) )
+                SY.append( float(np.log1p(df['<CLOSE>'][i-j-1]) - np.log1p(df['<CLOSE>'][i-j-2])) )
                 MA5 += df['<CLOSE>'][i-j-1]
             MA5 /= 5
             sign = -1 if df['<CLOSE>'][i - 2] > df['<CLOSE>'][i - 1] else 1
@@ -90,10 +90,10 @@ class DataSrc():
             PSY12 = float(A)/12
             ASY = []
             for j in range(5):
-                ASY.append(sum(SY[i: i+j+1]) / (j+1))
+                ASY.append(float(sum(SY[: j+1])) / float(j+1))
             # hard normalization
             MA5 /= 100000
-            OBV /= 100000
+            OBV /= 1000000
             # append
             if df['<CLOSE>'][i-1] < df['<CLOSE>'][i]:
                 y.append(1)
@@ -137,6 +137,14 @@ class DataSrc():
     def get_dataset(self):
         return self.train, self.valid, self.test
 
+    def Xy_to_csv(self, file_name):
+        res = np.empty((self.X.shape[0], self.X.shape[1]+1))
+        for i in range(self.X.shape[0]):
+            res[i, :-1] = self.X[i, :]
+            res[i][-1] = self.y[i]
+        df = pd.DataFrame(res)
+        df.to_csv(file_name, sep=';')
+
 
     def load_data(self, file_name, len_group, len_order, valid_share, test_share):
         '''
@@ -155,6 +163,7 @@ class DataSrc():
         self.load_raw_data(file_name)
         # self.parse_for_visual_analys(len_group, len_order)
         self.parse_with_indicators_2(len_order)
+        self.Xy_to_csv('data/parse_data.csv')
 
         points_raw, points_clear = self._get_split_points(valid_share, test_share)
         val_split, test_split = points_raw

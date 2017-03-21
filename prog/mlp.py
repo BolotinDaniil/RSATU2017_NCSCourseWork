@@ -80,7 +80,7 @@ class MLP(object):
         self.output = self.layers[-1].output
         self.output_dropout = self.layers[-1].output_dropout
 
-    def fit_SGD(self, training_data, epochs, mini_batch_size, eta,
+    def fit(self, training_data, epochs, mini_batch_size, eta,
             validation_data, test_data, lmbda=0.0, verbose=0, weights_biases=None):
         '''
         training via backpropagation

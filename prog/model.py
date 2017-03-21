@@ -7,6 +7,7 @@ import theano
 import threading
 
 from mlp import MLP, DenseLayer, SoftmaxLayer, ReLU, linear
+from keras_mlp import keras_MLP
 from genetics import GA
 from config_parser import config
 
@@ -32,16 +33,18 @@ class GA_MLP:
     def construct_MLP(self, config):
         layers = []
         for i in range(1, len(config['MLP']['layers']) - 1):
-            if config['MLP']['activation_fns'][i-1] == 'ReLu':
+            if config['MLP']['activation_fns'][i-1] == 'relu':
                 a_fn = ReLU
             elif config['MLP']['activation_fns'][i-1] == 'Linear':
                 a_fn = linear
+            else:
+                a_fn = ReLU
             layer = DenseLayer(config['MLP']['layers'][i - 1], config['MLP']['layers'][i], a_fn)
             layers.append(layer)
         layer = SoftmaxLayer(config['MLP']['layers'][-2], config['MLP']['layers'][-1])
         layers.append(layer)
         # layers = [DenseLayer(5, 64, ReLU), SoftmaxLayer(64, 2)]
-        mlp = MLP(layers, config['MLP']['batch_size'])
+        mlp = keras_MLP(layers, config['MLP']['batch_size'])
         return mlp
 
     def fit(self):

@@ -101,7 +101,7 @@ class GA:
     def fit_genotype(self, genotype):
         init_weights = self.conv_genotype(genotype)
 
-        rt, rv = self.nn.fit_SGD((self.X, self.y),
+        rt, rv = self.nn.fit((self.X, self.y),
                         config['MLP']['nb_epoch'],
                         config['MLP']['batch_size'],
                         config['MLP']['learning_rate'],
@@ -131,8 +131,10 @@ class GA:
 
         for i in range(self.population.shape[0]):
             indexes.append(i)
-            _, r = self.fit_genotype(self.population[i])
-            scores.append(r[-1])
+            l, r = self.fit_genotype(self.population[i])
+            score = (config["GA"]["train_weight"] * l[-1] + config["GA"]["valid_weight"] * r[-1]) / \
+                    float(config["GA"]["train_weight"] + config["GA"]["valid_weight"])
+            scores.append(score)
             val_hist.append(r)
         indexes.sort(key=sortByIndex, reverse=True)
         for i in range(self.population.shape[0]):

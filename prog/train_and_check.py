@@ -191,6 +191,7 @@ class Teacher:
         self.model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
 
 
+
     # @timeit
     def train(self, nb_epoch, batch_size):
         res = self.model.fit(self.X_train, self.Y_train,

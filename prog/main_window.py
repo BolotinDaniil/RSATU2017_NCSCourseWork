@@ -26,7 +26,9 @@ class MainWindow(QtWidgets.QMainWindow, main_window_class):
         self.init_canvases()
 
         self.data_src = DataSrc()
-        self.data_src.load_data('data/RTS_001110_161101.csv',
+        self.data_src.load_data(
+                                # 'data/BRENT_001101_161101_1DAY.csv',
+                                'data/RTS_001110_161101.csv',
                                 len_group=config['DATASET']['len_group'],
                                 len_order=config['DATASET']['len_order'],
                                 valid_share=config['DATASET']['valid_share'],
