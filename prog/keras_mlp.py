@@ -7,15 +7,20 @@ from utils import timeit
 import math
 import matplotlib.pyplot as plt
 from keras import backend as K
+import theano
 import numpy as np
 from config_parser import config
+
+from sklearn.model_selection import StratifiedKFold
+
+# theano.config.mode = 'FAST_COMPILE'
 
 
 class keras_MLP(object):
     def __init__(self, *k, **params):
         pass
 
-    def build_mode(self, batch_size, weights_biases):
+    def build_model(self, batch_size, weights_biases):
         model = Sequential()
         model.add(Dense(config['MLP']['layers'][1], input_dim=config['MLP']['layers'][0],
                         activation=config['MLP']['activation_fns'][0],
@@ -61,22 +66,49 @@ class keras_MLP(object):
                 else:
                     y.append([0, 1])
 
-        self.build_mode(mini_batch_size, weights_biases)
+        # cross validation
+        all_x = np.concatenate((x, val_x))
+        all_y = np.concatenate((y, val_y))
+        kfold = StratifiedKFold(n_splits=5, shuffle=False, random_state=0)
+        cvscores = []
 
-        hist = self.model.fit(x, y,
+        if config['MLP']['nb_epoch'] == 0:
+            self.build_model(mini_batch_size, weights_biases)
+            score = self.model.evaluate(all_x, all_y, verbose=0)
+            return [score[1]], [score[1]]
+
+        for train, val in kfold.split(all_x, all_y):
+            # create model
+            self.build_model(mini_batch_size, weights_biases)
+            # Fit the model
+            hist = self.model.fit(all_x[train], all_y[train],
+                                  # validation_data=(all_x[val], all_y[val]),
+                                  nb_epoch=config['MLP']['nb_epoch'],
+                                  batch_size=mini_batch_size,
+                                  verbose=config['MLP']['verbose'],
+                                  shuffle=False
+                                  )
+            # evaluate the model
+            scores = self.model.evaluate(all_x[val], all_y[val], verbose=0)
+            cvscores.append(scores[1])
+
+        self.build_model(mini_batch_size, weights_biases)
+
+        hist = self.model.fit(all_x, all_y,
                               validation_data=(val_x, val_y),
                               nb_epoch=config['MLP']['nb_epoch'],
                               batch_size=mini_batch_size,
                               verbose=config['MLP']['verbose'],
                               shuffle=False
                               )
+        hist.history['val_acc'].append(np.mean(cvscores))
         return hist.history['acc'], hist.history['val_acc']
 
     def predict(self, X):
         pred = self.model.predict(X)
         res = []
         if config['MLP']['layers'][-1] == 1:
-            res = (int(i+0.5) for i in pred)
+            res = [int(i+0.5) for i in pred]
         else:
             for i in pred:
                 res.append(1 if i[0] > i[1] else 0)

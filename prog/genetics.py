@@ -91,8 +91,10 @@ class GA:
         new_pop[0:self.pop_size] = self.population[:]
         self.population = new_pop
         for i in range(int((self.c_r-1) * self.pop_size)):
-            p1 = np.random.randint(0, self.pop_size)
-            p2 = np.random.randint(0, self.pop_size)
+            p1 = p2 = 0
+            while np.array_equal(self.population[p1], self.population[p2]):
+                p1 = np.random.randint(0, self.pop_size)
+                p2 = np.random.randint(0, self.pop_size)
             self.population[i+self.pop_size] = self.crossing_genotypes(self.population[p1], self.population[p2])
             if np.random.rand() < self.m_r:
                 self.mutate_genotype(i+self.pop_size)
@@ -132,8 +134,9 @@ class GA:
         for i in range(self.population.shape[0]):
             indexes.append(i)
             l, r = self.fit_genotype(self.population[i])
-            score = (config["GA"]["train_weight"] * l[-1] + config["GA"]["valid_weight"] * r[-1]) / \
-                    float(config["GA"]["train_weight"] + config["GA"]["valid_weight"])
+            # score = (config["GA"]["train_weight"] * l[-1] + config["GA"]["valid_weight"] * r[-1]) / \
+            #         float(config["GA"]["train_weight"] + config["GA"]["valid_weight"])
+            score = r[-1]
             scores.append(score)
             val_hist.append(r)
         indexes.sort(key=sortByIndex, reverse=True)
@@ -160,12 +163,12 @@ class GA:
 
 
         # heuristic
-        if np.var(new_scores)**0.5 < 0.03:
+        if np.var(new_scores)**0.5 < 0.02:
             self.amount_winners = 10
         elif np.var(new_scores)**0.5 > 0.2:
             self.amount_winners = 20
         else:
-            self.amount_winners = 20
+            self.amount_winners = 19
 
         print('generation: {}, mean: {}, deviation: {}, max: {}'
               .format(self.number_generation, np.mean(new_scores), np.var(new_scores)**0.5, new_scores[0]))

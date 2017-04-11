@@ -163,7 +163,7 @@ class DataSrc():
         self.load_raw_data(file_name)
         # self.parse_for_visual_analys(len_group, len_order)
         self.parse_with_indicators_2(len_order)
-        self.Xy_to_csv('data/parse_data.csv')
+        # self.Xy_to_csv('data/parse_data.csv')
 
         points_raw, points_clear = self._get_split_points(valid_share, test_share)
         val_split, test_split = points_raw

@@ -7,9 +7,23 @@ import theano
 import threading
 
 from mlp import MLP, DenseLayer, SoftmaxLayer, ReLU, linear
-from keras_mlp import keras_MLP
+# from keras_mlp import keras_MLP as MLP
+from mlp import MLP
 from genetics import GA
 from config_parser import config
+
+class PopulationWrapper:
+    '''
+     use for save/load GA_MLP with pickle
+    '''
+    def save_data(self, model):
+        self.ga = model.ga
+
+    def load_data(self, model):
+        print("update model")
+        model.ga = self.ga
+        model.show_train_info()
+
 
 class GA_MLP:
     def __init__(self, main_window):
@@ -25,8 +39,15 @@ class GA_MLP:
                 train_data=train,
                 val_data=valid)
         ga.build_inital_polulation()
+
         ga.hist = {}
         ga.hist['all_hist'] = [[], []]
+        ga.hist['tek_generation'] = -1
+        ga.hist['mean_acc'] = 0
+        ga.hist['best_acc'] = 0
+        ga.hist['deviation'] = 0
+        ga.hist['cur_hist'] = []
+
         self.ga = ga
         self.main_window = main_window
 
@@ -44,7 +65,7 @@ class GA_MLP:
         layer = SoftmaxLayer(config['MLP']['layers'][-2], config['MLP']['layers'][-1])
         layers.append(layer)
         # layers = [DenseLayer(5, 64, ReLU), SoftmaxLayer(64, 2)]
-        mlp = keras_MLP(layers, config['MLP']['batch_size'])
+        mlp = MLP(layers, config['MLP']['batch_size'])
         return mlp
 
     def fit(self):
@@ -65,17 +86,20 @@ class GA_MLP:
             self.ga.hist['all_hist'][0].append(scores[0])
             self.ga.hist['all_hist'][1].append(np.mean(scores))
 
-            # show text
-            self.main_window.label_generation.setText(str(self.ga.hist['tek_generation']))
-            self.main_window.label_mean_acc.setText(str(self.ga.hist['mean_acc']))
-            self.main_window.label_best_acc.setText(str(self.ga.hist['best_acc']))
-            self.main_window.label_deviation.setText(str(self.ga.hist['deviation']))
+            self.show_train_info()
 
-            # show plots
-            self.main_window.canvas_fit.data[0] = self.ga.hist['cur_hist']
-            self.main_window.canvas_fit.data[1] = self.ga.hist['all_hist'][0]
-            self.main_window.canvas_fit.data[2] = self.ga.hist['all_hist'][1]
-            self.main_window.canvas_fit.plot()
+    def show_train_info(self):
+        # show text
+        self.main_window.label_generation.setText(str(self.ga.hist['tek_generation']))
+        self.main_window.label_mean_acc.setText(str(self.ga.hist['mean_acc']))
+        self.main_window.label_best_acc.setText(str(self.ga.hist['best_acc']))
+        self.main_window.label_deviation.setText(str(self.ga.hist['deviation']))
+
+        # show plots
+        self.main_window.canvas_fit.data[0] = self.ga.hist['cur_hist']
+        self.main_window.canvas_fit.data[1] = self.ga.hist['all_hist'][0]
+        self.main_window.canvas_fit.data[2] = self.ga.hist['all_hist'][1]
+        self.main_window.canvas_fit.plot()
 
     def test(self):
         train, valid, test = self.main_window.data_src.get_dataset()
@@ -109,10 +133,10 @@ class GA_MLP:
         self.main_window.canvas_test.data = raw_test, y, pred
         self.main_window.canvas_test.plot()
 
-    def save(self):
+    def save_to_file(self, file_name):
         pass
 
-    def load(self):
+    def load_from_file(self, file_name):
         pass
 
 

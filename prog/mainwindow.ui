@@ -308,13 +308,13 @@
      <height>23</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menu_2">
+   <widget class="QMenu" name="menu_dataset">
     <property name="title">
      <string>Датасет</string>
     </property>
     <addaction name="action_load_dataset"/>
    </widget>
-   <widget class="QMenu" name="menu">
+   <widget class="QMenu" name="menu_config">
     <property name="title">
      <string>Конфигурация</string>
     </property>
@@ -325,12 +325,12 @@
      <string>Популяция</string>
     </property>
     <addaction name="separator"/>
-    <addaction name="action_3"/>
-    <addaction name="action_4"/>
-    <addaction name="action_5"/>
+    <addaction name="action_new_population"/>
+    <addaction name="action_population_save_as"/>
+    <addaction name="action_load_population"/>
    </widget>
-   <addaction name="menu"/>
-   <addaction name="menu_2"/>
+   <addaction name="menu_config"/>
+   <addaction name="menu_dataset"/>
    <addaction name="menu_3"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -360,17 +360,17 @@
     <string>Загрузить</string>
    </property>
   </action>
-  <action name="action_3">
+  <action name="action_new_population">
    <property name="text">
     <string>Создать новую</string>
    </property>
   </action>
-  <action name="action_4">
+  <action name="action_population_save_as">
    <property name="text">
     <string>Сохранить как</string>
    </property>
   </action>
-  <action name="action_5">
+  <action name="action_load_population">
    <property name="text">
     <string>Загрузить</string>
    </property>

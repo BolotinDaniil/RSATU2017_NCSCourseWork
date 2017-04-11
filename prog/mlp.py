@@ -30,6 +30,7 @@ GPU = False
 # init theano
 # theano.config.exception_verbosity = 'high'
 # theano.config.mode = 'DebugMode'
+# theano.config.mode = 'FAST_COMPILE'
 theano.config.mode = 'FAST_RUN'
 if GPU:
     print("Trying to run under a GPU")
